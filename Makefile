@@ -69,7 +69,7 @@ run_huawei:
 		./${CONDA_DIR}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python main.py \
 			--experimentconfig_sequence_type huawei_logs \
 			--experimentconfig_model_type $$knowledge_type \
-			--huaweipreprocessorconfig_min_causality 0.01
+			--huaweipreprocessorconfig_min_causality 0.01 \
 		    --sequenceconfig_x_sequence_column_name fine_log_cluster_template \
 		    --sequenceconfig_y_sequence_column_name attributes \
 		    --sequenceconfig_max_window_size 10 \
