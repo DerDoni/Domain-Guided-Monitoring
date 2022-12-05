@@ -11,9 +11,9 @@ class MlflowHelper:
     def __init__(
         self,
         tracking_uri: str = "http://localhost:5000",
-        local_mlflow_dir_prefix: str = "../gsim01/mlruns/",
+        local_mlflow_dir_prefix: str = "../mlruns/",
         experiment_name: str = "Domain Guided Monitoring",
-        experiment_id: Optional[str] = "1",
+        experiment_id: Optional[str] = "719923802334351993",
         pkl_file: Optional[Path] = None,
     ):
         self.mlflow_client = MlflowClient(tracking_uri=tracking_uri)
@@ -207,11 +207,11 @@ class MlflowHelper:
             & (self.run_df["data_params_ExperimentConfigbatch_size"].astype(str).fillna("") == "128")
             & (
                 (self.run_df["data_params_HuaweiPreprocessorConfigfine_drain_log_st"].astype(str).fillna("") == "0.75")
-                | (self.run_df["data_params_HuaweiPreprocessorConfigdrain_log_st"].astype(str).fillna("") == "0.75")
+                | (self.run_df["data_params_HuaweiPreprocessorConfigcoarse_drain_log_st"].astype(str).fillna("") == "0.75")
             )
             & (
                 (self.run_df["data_params_HuaweiPreprocessorConfigfine_drain_log_depth"].astype(str).fillna("") == "10")
-                | (self.run_df["data_params_HuaweiPreprocessorConfigdrain_log_depth"].astype(str).fillna("") == "10")
+                | (self.run_df["data_params_HuaweiPreprocessorConfigcoarse_drain_log_depth"].astype(str).fillna("") == "10")
             )
             & (
                 (~ (
@@ -245,11 +245,11 @@ class MlflowHelper:
                 huawei_run_df["data_params_SequenceConfigy_sequence_column_name"].apply(lambda x: x in valid_y_columns)
             ]
 
-        if not include_noise:
+        if not include_noise and 'data_tags_noise_type' in huawei_run_df.columns:
             huawei_run_df = huawei_run_df[
                 (huawei_run_df["data_tags_noise_type"].fillna("").apply(len) == 0)
             ]
-        if not include_refinements:
+        if not include_refinements and 'data_tags_refinement_type' in huawei_run_df.columns:
             huawei_run_df = huawei_run_df[
                 (huawei_run_df["data_tags_refinement_type"].fillna("") == "")
                 & (huawei_run_df["data_params_HuaweiPreprocessorConfigmin_causality"].fillna(0.0).astype(str) == "0.01")
