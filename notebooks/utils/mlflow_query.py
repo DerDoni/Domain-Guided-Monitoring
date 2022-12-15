@@ -342,6 +342,7 @@ class MlflowHelper:
         self, run_ids: Set[str], best_metric_name: str = "val_loss_history"
     ):
         metric_records = []
+
         for run_id in tqdm(run_ids, desc="Querying metrics for runs"):
             metric_dict = self._load_metrics_from_local(run_id=run_id)
             if metric_dict is None or best_metric_name not in metric_dict:
