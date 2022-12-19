@@ -17,7 +17,7 @@ class ExperimentConfig:
     # DATASET GENERATION
     max_data_size: int = -1
     use_dataset_generator: bool = True
-    batch_size: int = 32
+    batch_size: int = 128
     multilabel_classification: bool = False
     # using this will cache dataset accross different runs.
     # don't use this if you change settings for creating the dataset!
@@ -25,5 +25,5 @@ class ExperimentConfig:
     # SEEDING
     dataset_shuffle_buffer: int = 1000
     dataset_shuffle_seed: int = 12345
-    random_seed: int = 82379498237
+    random_seed: int = 15379
     tensorflow_seed: int = 7796

@@ -6,11 +6,11 @@ from typing import List
 @dataclass_cli.add
 @dataclasses.dataclass
 class ModelConfig:
-    rnn_type: str = "lstm"
-    rnn_dim: int = 32
+    rnn_type: str = "gru"
+    rnn_dim: int = 200
     rnn_dropout: float = 0.0
-    embedding_dim: int = 16
-    attention_dim: int = 16
+    embedding_dim: int = 300
+    attention_dim: int = 100
     base_feature_embeddings_trainable: bool = True
     base_hidden_embeddings_trainable: bool = True
     feature_embedding_initializer: str = "random_uniform"
