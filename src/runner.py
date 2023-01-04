@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 
 class ExperimentRunner:
+    # DF columns = num_events, num_logs, fine_log_cluster_template, coarse_log_cluster_template
     sequence_df_pkl_file: str = "data/sequences_df.pkl"
 
     def __init__(self, run_id: str):
@@ -25,7 +26,7 @@ class ExperimentRunner:
         logging.info("Starting run %s", self.run_id)
         tf.random.set_seed(self.config.tensorflow_seed)
         random.seed(self.config.random_seed)
-        sequence_df = self._load_sequences()
+        sequence_df = self._load_sequences() # run preprocessor
         if self.config.max_data_size > 0 and self.config.max_data_size < len(
             sequence_df
         ):
@@ -475,7 +476,7 @@ class ExperimentRunner:
             sequence_preprocessor = preprocessing.ConcurrentAggregatedLogsPreprocessor(
                 huawei_config,
             )
-            self.sequence_column_name = sequence_preprocessor.sequence_column_name
+            self.sequence_column_name = sequence_preprocessor.sequence_column_name # all_events
             return sequence_preprocessor.load_data()
         elif self.config.sequence_type == "c24":
             c24_config = preprocessing.C24PreprocessorConfig()

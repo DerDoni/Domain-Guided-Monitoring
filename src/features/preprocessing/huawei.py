@@ -56,7 +56,7 @@ class HuaweiPreprocessorConfig:
     coarse_drain_log_st: float = 0.2
     drain_log_depths: List[int] = dataclasses.field(default_factory=lambda: [],)
     drain_log_sts: List[float] = dataclasses.field(default_factory=lambda: [],)
-    url_column_name: str = "http_url"
+    url_column_name: str = "http_url"  # Why is this needed? What kind of URL?
     drain_url_depth: int = 10
     drain_url_st: float = 0.5
     add_log_clusters: bool = True

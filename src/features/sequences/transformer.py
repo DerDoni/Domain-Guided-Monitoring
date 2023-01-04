@@ -53,10 +53,13 @@ class NextSequenceTransformer:
     ):
         self.config = config
 
+    """
+    Metadata: max_feature_length, max_features_per_time, max_features_per_sequence, x_vocab, y_vocab, x=y vocab
+    """
     def collect_metadata(
         self, sequence_df: pd.DataFrame, sequence_column_name: str
     ) -> SequenceMetadata:
-        (x_vocab, y_vocab) = self._generate_vocabs(sequence_df, sequence_column_name)
+        (x_vocab, y_vocab) = self._generate_vocabs(sequence_df, sequence_column_name) # are the same?
         max_sequence_length = sequence_df[sequence_column_name].apply(len).max() - 1
         if (
             not self.config.predict_full_y_sequence
@@ -362,6 +365,7 @@ class NextSequenceTransformer:
         )
         return self._generate_vocab_from_list(flattened_sequences)
 
+    # vocab[feature] = index
     def _generate_vocab_from_list(self, features: List[str]) -> Dict[str, int]:
         vocab = {}
         index = 0
