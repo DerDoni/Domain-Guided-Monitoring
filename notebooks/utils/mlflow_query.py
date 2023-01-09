@@ -189,7 +189,7 @@ class MlflowHelper:
     def huawei_run_df(
         self, include_noise: bool = False, include_refinements: bool = False,
         risk_prediction: bool = False,
-        valid_x_columns: List[str]=["log_cluster_template", "fine_log_cluster_template"],
+        valid_x_columns: List[str]=["coarse_cluster_template", "fine_log_cluster_template", ""],
         valid_y_columns: List[str]=["attributes"],
         include_drain_hierarchy: bool=False,
     ) -> pd.DataFrame:
