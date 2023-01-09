@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 
 class ExperimentRunner:
     # DF columns = num_events, num_logs, fine_log_cluster_template, coarse_log_cluster_template
+    # Result of drain step
     sequence_df_pkl_file: str = "data/sequences_df.pkl"
 
     def __init__(self, run_id: str):

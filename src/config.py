@@ -7,7 +7,7 @@ from pathlib import Path
 @dataclasses.dataclass
 class ExperimentConfig:
     n_epochs: int = 10
-    sequence_type: str = "mimic"
+    sequence_type: str = "huawei_logs"
     model_type: str = "simple"
     # NOISE
     noise_to_add: float = 0.0

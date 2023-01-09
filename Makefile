@@ -7,13 +7,13 @@
 # make run_mimic 		# executes main.py within the conda environment for all knowledge types on mimic dataset
 # make run_huawei		# executes main.py within the conda environment for all knowledge types on huawei dataset
 
-CONDA_ENV_NAME = healthcare-aiops
+CONDA_ENV_NAME = lena
 CONDA_URL = https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 CONDA_SH = Miniconda3-latest-Linux-x86_64.sh
-CONDA_DIR = .tmp
+CONDA_DIR = /home/vincenzo/anaconda3
 
 DATA_DIR = data
-KNOWLEDGE_TYPES = simple gram text causal
+KNOWLEDGE_TYPES = simple gram
 
 install:
 ifneq (,$(wildcard ${CONDA_DIR}))
@@ -39,7 +39,7 @@ install_mimic:
 server:
 	@echo "Starting MLFlow UI at port 5000"
 	PATH="${PATH}:$(shell pwd)/${CONDA_DIR}/miniconda3/envs/${CONDA_ENV_NAME}/bin" ; \
-	./${CONDA_DIR}/miniconda3/envs/${CONDA_ENV_NAME}/bin/mlflow server --gunicorn-opts -t180
+	${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/mlflow server --gunicorn-opts -t180
 
 notebook:
 	@echo "Starting Jupyter Notebook at port 8888"
@@ -49,32 +49,43 @@ notebook:
 run: 
 	./${CONDA_DIR}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python main.py ${ARGS}
 
-run_mimic: 
-	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
-		echo "Starting experiment for mimic with knowledge type " $$knowledge_type "....." ; \
-		./${CONDA_DIR}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python main.py \
-			--experimentconfig_sequence_type mimic \
-			--experimentconfig_model_type $$knowledge_type \
-			--mimicpreprocessorconfig_sequence_column_name level_all \
-		    --mimicpreprocessorconfig_prediction_column level_0 \
-			--sequenceconfig_x_sequence_column_name level_0 \
-			--sequenceconfig_y_sequence_column_name level_3 \
-			--sequenceconfig_predict_full_y_sequence_wide \
-			${ARGS} ; \
-	done ; \
-
 run_huawei:
 	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
 		echo "Starting experiment for huawei_logs with knowledge type " $$knowledge_type "....." ; \
-		./${CONDA_DIR}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python main.py \
-			--experimentconfig_sequence_type huawei_logs \
+		${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/python main.py \
 			--experimentconfig_model_type $$knowledge_type \
 			--huaweipreprocessorconfig_min_causality 0.01 \
-		    --sequenceconfig_x_sequence_column_name fine_log_cluster_template \
-		    --sequenceconfig_y_sequence_column_name attributes \
-		    --sequenceconfig_max_window_size 10 \
-		    --sequenceconfig_min_window_size 10 \
+			--huaweipreprocessorconfig_relevant_log_column attention_log_cluster_template \
+			--no-modelconfig_base_feature_embeddings_trainable \
+			--no-modelconfig_base_hidden_embeddings_trainable \
+		  --sequenceconfig_x_sequence_column_name fine_log_cluster_template \
+		  --sequenceconfig_y_sequence_column_name attributes \
+		  --sequenceconfig_max_window_size 10 \
+		  --sequenceconfig_min_window_size 10 \
 			--experimentconfig_multilabel_classification \
 			--sequenceconfig_flatten_y \
+			--sequenceconfig_flatten_x \
+			${ARGS} ; \
+	done ; \
+
+
+
+run_attention:
+	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
+		echo "Starting experiment for huawei_logs with knowledge type " $$knowledge_type "....." ; \
+		${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/python main.py \
+			--experimentconfig_model_type $$knowledge_type \
+			--huaweipreprocessorconfig_min_causality 0.01 \
+			--huaweipreprocessorconfig_relevant_log_column log_cluster_template\
+			--no-modelconfig_base_feature_embeddings_trainable \
+			--no-modelconfig_base_hidden_embeddings_trainable \
+			--sequenceconfig_x_sequence_column_name log_cluster_template\
+			--textualpapermodelconfig_num_filters 100 \
+			--sequenceconfig_y_sequence_column_name attributes \
+			--sequenceconfig_max_window_size 10 \
+			--sequenceconfig_min_window_size 10 \
+			--experimentconfig_multilabel_classification \
+			--sequenceconfig_flatten_y \
+			--sequenceconfig_flatten_x \
 			${ARGS} ; \
 	done ; \
