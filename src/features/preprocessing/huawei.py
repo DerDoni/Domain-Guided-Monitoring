@@ -52,6 +52,8 @@ class HuaweiPreprocessorConfig:
     use_log_hierarchy: bool = False
     fine_drain_log_depth: int = 10
     fine_drain_log_st: float = 0.75
+    medium_drain_log_depth: int = 7
+    medium_drain_log_st: float = 0.4
     coarse_drain_log_depth: int = 4
     coarse_drain_log_st: float = 0.2
     drain_log_depths: List[int] = dataclasses.field(default_factory=lambda: [],)
@@ -78,6 +80,7 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         )
         self.relevant_columns.add("fine_log_cluster_template")
         self.relevant_columns.add("coarse_log_cluster_template")
+        self.relevant_columns.add("medium_log_cluster_template")
         self.relevant_columns.add("url_cluster_template")
         # TODO: Run preprocessing with different log_depths settings
         for i in range(len(self.config.drain_log_depths)):
@@ -389,6 +392,12 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             depth=self.config.coarse_drain_log_depth,
             st=self.config.coarse_drain_log_st,
             prefix="coarse_",
+        )
+        log_result_df = self._add_log_drain_clusters_prefix(
+            log_df=log_result_df,
+            depth=self.config.medium_drain_log_depth,
+            st=self.config.medium_drain_log_st,
+            prefix="medium_",
         )
         for i in range(len(self.config.drain_log_depths)):
             log_result_df = self._add_log_drain_clusters_prefix(
