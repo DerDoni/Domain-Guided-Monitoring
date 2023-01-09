@@ -79,6 +79,7 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         self.relevant_columns.add("fine_log_cluster_template")
         self.relevant_columns.add("coarse_log_cluster_template")
         self.relevant_columns.add("url_cluster_template")
+        # TODO: Run preprocessing with different log_depths settings
         for i in range(len(self.config.drain_log_depths)):
             self.relevant_columns.add(str(i) + "_log_cluster_template")
         if self.config.use_trace_data:
@@ -113,6 +114,7 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             )
             return aggregated_log_data[aggregated_log_data["num_events"] > 1]
         else:
+            # Path normally taken with lenas config
             log_only_data = self._load_log_only_data()
             log_only_data["grouper"] = 1
             return self._aggregate_per(log_only_data, aggregation_column="grouper")
@@ -312,6 +314,8 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         )
         return url_result_df
 
+
+    # Actual drain calculation happens here
     def _add_log_drain_clusters_prefix(
         self, log_df: pd.DataFrame, depth: int, st: float, prefix: str
     ) -> pd.DataFrame:
