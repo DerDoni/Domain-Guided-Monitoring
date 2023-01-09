@@ -14,7 +14,7 @@ from .drain import Drain, DrainParameters
 import numpy as np
 
 
-#@dataclass_cli.add
+@dataclass_cli.add
 @dataclasses.dataclass
 class HuaweiPreprocessorConfig:
     aggregated_log_file: Path = Path("data/logs_aggregated_concurrent.csv")
