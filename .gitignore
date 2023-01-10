@@ -3,6 +3,7 @@
 
 ### Code ###
 .vscode/*
+.idea/*
 !.vscode/tasks.json
 !.vscode/launch.json
 *.code-workspace
