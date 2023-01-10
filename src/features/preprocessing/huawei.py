@@ -67,11 +67,12 @@ class HuaweiPreprocessorConfig:
     log_only_causality: bool = False
     relevant_log_column: str = "fine_log_cluster_template"
     log_template_file: Path = Path("data/attention_log_templates.csv")
-
+    remove_dates_from_payload: bool = False
 
 class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
     sequence_column_name: str = "all_events"
     request_drain_regex: str = "[^a-zA-Z0-9\-\.]"
+    payload_datetime_regex: str = "\[\d\d\/...\/\d\d\d\d(.*?)\]"
 
     def __init__(self, config: HuaweiPreprocessorConfig):
         self.config = config
@@ -256,6 +257,10 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             .astype(str)
             .replace(np.nan, "", regex=True)
         )
+
+        if self.config.remove_dates_from_payload:
+            df['Payload'] = df['Payload'].map(lambda x: re.sub(self.payload_datetime_regex, "", x))
+
         rel_df = df[
             self.config.relevant_aggregated_log_columns
             + [self.config.log_datetime_column_name]
