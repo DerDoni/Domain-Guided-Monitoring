@@ -67,7 +67,7 @@ class HuaweiPreprocessorConfig:
     log_only_causality: bool = False
     relevant_log_column: str = "fine_log_cluster_template"
     log_template_file: Path = Path("data/attention_log_templates.csv")
-    remove_dates_from_payload: bool = False
+    remove_dates_from_payload: bool = True
 
 class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
     sequence_column_name: str = "all_events"
