@@ -68,6 +68,7 @@ class HuaweiPreprocessorConfig:
     relevant_log_column: str = "fine_log_cluster_template"
     log_template_file: Path = Path("data/attention_log_templates.csv")
     remove_dates_from_payload: bool = True
+    log_parser: str = "drain"
 
 class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
     sequence_column_name: str = "all_events"
@@ -267,7 +268,8 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             + [self.config.log_payload_column_name]
             + [self.config.url_column_name]
         ]
-        rel_df = self._add_log_drain_clusters(rel_df)
+        if self.config.log_parser == "drain":
+            rel_df = self._add_log_drain_clusters(rel_df)
         if self.config.log_template_file.exists():
             rel_df = self._add_precalculated_log_templates(rel_df)
         rel_df["timestamp"] = pd.to_datetime(
