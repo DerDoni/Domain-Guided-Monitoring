@@ -138,7 +138,8 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
 
     def _load_log_only_data(self) -> pd.DataFrame:
         log_df = self._read_log_df()
-        log_df = self._add_url_drain_clusters(log_df)
+        if self.config.log_parser == "drain":
+            log_df = self._add_url_drain_clusters(log_df)
         for column in [x for x in log_df.columns if "log_cluster_template" in x]:
             log_df[column] = (
                 log_df[column]
@@ -270,6 +271,8 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         ]
         if self.config.log_parser == "drain":
             rel_df = self._add_log_drain_clusters(rel_df)
+        if self.config.log_parser == "spell":
+            relf_df = self._add_log_spell_clusters(rel_df)
         if self.config.log_template_file.exists():
             rel_df = self._add_precalculated_log_templates(rel_df)
         rel_df["timestamp"] = pd.to_datetime(
@@ -414,7 +417,10 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
                 prefix=str(i) + "_",
             )
         return log_result_df
-
+    def _add_log_spell_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
+        return log_df
+    def _add_log_spell_clusters_prefix(self, log_df: pd.DataFrame, tau: int, prefix: str):
+        return log_df
 
 class ConcurrentAggregatedLogsDescriptionPreprocessor(Preprocessor):
     def __init__(
