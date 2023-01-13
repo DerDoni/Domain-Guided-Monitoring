@@ -55,14 +55,14 @@ class LogParser(pickle.Unpickler):
             1: Merge as much as possible
             0: Differentiate as much as possible
     """
-    def __init__(self, indir='./', outdir='./result/', log_format=None, tau=0.5, keep_para=True, text_max_length=4096, logmain=None, df_log=None):
+    def __init__(self, indir='./', outdir='./result/', log_format=None, tau=0.5, keep_para=True, text_max_length=4096, logmain=None):
         self.path = indir
         self.logname = None
         self.logmain = logmain
         self.savePath = outdir
         self.tau = tau
         self.logformat = log_format
-        self.df_log = df_log
+        self.df_log = None
         self.keep_para = keep_para
         self.lastestLineId = 0
         self.text_max_length = text_max_length
