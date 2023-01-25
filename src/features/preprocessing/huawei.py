@@ -4,6 +4,7 @@ import dataclasses
 import logging
 import pandas as pd
 from pathlib import Path
+from src.features.preprocessing.spell import Spell, SpellParameters
 from tqdm import tqdm
 from typing import List, Dict, Set
 import http
@@ -80,10 +81,13 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         self.relevant_columns = set(
             [x for x in self.config.relevant_aggregated_log_columns]
         )
-        self.relevant_columns.add("fine_log_cluster_template")
-        self.relevant_columns.add("coarse_log_cluster_template")
-        self.relevant_columns.add("medium_log_cluster_template")
+        self.relevant_columns.add("drain_fine_log_cluster_template")
+        self.relevant_columns.add("drain_coarse_log_cluster_template")
+        self.relevant_columns.add("drain_medium_log_cluster_template")
         self.relevant_columns.add("url_cluster_template")
+        self.relevant_columns.add("spell_fine_log_cluster_template")
+        self.relevant_columns.add("spell_coarse_log_cluster_template")
+        self.relevant_columns.add("spell_medium_log_cluster_template")
         # TODO: Run preprocessing with different log_depths settings
         for i in range(len(self.config.drain_log_depths)):
             self.relevant_columns.add(str(i) + "_log_cluster_template")
@@ -395,19 +399,19 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             log_df=log_df,
             depth=self.config.fine_drain_log_depth,
             st=self.config.fine_drain_log_st,
-            prefix="fine_",
+            prefix="drain_fine_",
         )
         log_result_df = self._add_log_drain_clusters_prefix(
             log_df=log_result_df,
             depth=self.config.coarse_drain_log_depth,
             st=self.config.coarse_drain_log_st,
-            prefix="coarse_",
+            prefix="drain_coarse_",
         )
         log_result_df = self._add_log_drain_clusters_prefix(
             log_df=log_result_df,
             depth=self.config.medium_drain_log_depth,
             st=self.config.medium_drain_log_st,
-            prefix="medium_",
+            prefix="drain_medium_",
         )
         for i in range(len(self.config.drain_log_depths)):
             log_result_df = self._add_log_drain_clusters_prefix(
@@ -418,9 +422,51 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             )
         return log_result_df
     def _add_log_spell_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
-        return log_df
-    def _add_log_spell_clusters_prefix(self, log_df: pd.DataFrame, tau: int, prefix: str):
-        return log_df
+        log_result_df = self._add_log_spell_clusters_prefix(log_df=log_df, tau=0.9, prefix="spell_fine_")
+        log_result_df = self._add_log_spell_clusters_prefix(log_df=log_df, tau=0.7, prefix="spell_medium_")
+        log_result_df = self._add_log_spell_clusters_prefix(log_df=log_df, tau=0.5, prefix="spell_coarse_")
+        return log_result_df
+    def _add_log_spell_clusters_prefix(self, log_df: pd.DataFrame, tau: float, prefix: str):
+        all_logs_df = pd.DataFrame(
+            log_df[self.config.log_payload_column_name].dropna().drop_duplicates()
+        )
+        spell = Spell(
+            SpellParameters(tau=tau), data_df=log_df, data_df_column_name=self.config.log_payload_column_name
+        )
+        spell_result_df = spell.load_data().drop_duplicates.set_index("log_idx")
+
+        log_result_df = (
+            pd.merge(
+                log_df,
+                pd.merge(
+                    all_logs_df,
+                    spell_result_df,
+                    left_index=True,
+                    right_index=True,
+                    how="left",
+                )
+                .drop_duplicates()
+                .reset_index(drop=True),
+                on=self.config.log_payload_column_name,
+                how="left",
+            )
+            # TODO: rename these columns (most likely)
+            .rename(
+                columns={
+                    "cluster_template": prefix + "log_cluster_template",
+                    "cluster_path": prefix + "log_cluster_path",
+                }
+            )
+            .drop(columns=["cluster_id"])
+        )
+        log_result_df[prefix + "log_cluster_template"] = (
+            log_result_df[prefix + "log_cluster_template"]
+            .fillna("")
+            .astype(str)
+            .replace(np.nan, "", regex=True)
+        )
+
+        return log_result_df
 
 class ConcurrentAggregatedLogsDescriptionPreprocessor(Preprocessor):
     def __init__(
