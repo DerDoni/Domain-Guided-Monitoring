@@ -285,9 +285,11 @@ class Spell(Preprocessor):
 
         df_event = pd.DataFrame(df_event, columns=['EventId', 'EventTemplate', 'Occurrences'])
 
+        self.df_log['EventId'] = ids
+        self.df_log['EventTemplate'] = templates
 
         print('Parsing done. [Time taken: {!s}]'.format(datetime.now() - starttime))
-        return df_event
+        return self.df_log
 
     def parse(self, logname):
         starttime = datetime.now()
