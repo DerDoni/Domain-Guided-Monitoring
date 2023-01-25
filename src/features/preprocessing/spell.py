@@ -264,18 +264,6 @@ class LogParser(pickle.Unpickler):
             os.makedirs(self.savePath)
 
         self.outputResult(logCluL)
-
-        if self.logmain:
-            self.appendResult(logCluL)
-
-        logging.info(f'rootNodePath: {rootNodePath}')
-        with open(rootNodePath, 'wb') as output:
-            pickle.dump(rootNode, output, pickle.HIGHEST_PROTOCOL)
-        logging.info(f'logCluLPath: {logCluLPath}')
-        with open(logCluLPath, 'wb') as output:
-            pickle.dump(logCluL, output, pickle.HIGHEST_PROTOCOL)
-        logging.info('Store objects done.')
-
         logging.info('Parsing done. [Time taken: {!s}]'.format(datetime.now() - starttime))
 
     def outputResult(self, logClustL):
