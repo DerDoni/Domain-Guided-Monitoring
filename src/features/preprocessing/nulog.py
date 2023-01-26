@@ -4,6 +4,8 @@ import hashlib
 import os
 
 import numpy as np
+from pandas.core.sorting import nargminmax
+from src.features.preprocessing.base import Preprocessor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -410,25 +412,33 @@ class SimpleLossCompute:
         return loss.item() * norm
 
 
-class LogParser:
-    def __init__(self,indir, outdir, filters, k, log_format):
-        self.path = indir
-        self.logName = None
-        self.savePath = outdir
-        self.filters = filters
+class NulogParameters:
+    def __init__(self, k: int, nr_epochs: int, num_samples: int ) -> None:
         self.k = k
-        self.df_log = None
+        self.nr_epochs = nr_epochs
+        self.num_samples = num_samples
+        self.filters = '([ |:|\(|\)|=|,])|(core.)|(\.{2,})'
+
+class Nulog(Preprocessor):
+    def __init__(self, log_format, params: NulogParameters, data_df: pd.DataFrame, data_df_column_name:str):
+        self.logName = None
+        self.filters = params.filters
+        self.k = params.k
+        self.df_log = data_df
+        self.data_df_column_name = data_df_column_name
         self.log_format = log_format
-        self.tokenizer = LogTokenizer(filters)
+        self.tokenizer = LogTokenizer(self.filters)
+        self.nr_epochs = params.nr_epochs
+        self.num_samples = params.num_samples
 
     def num_there(self, s):
         digits = [i.isdigit() for i in s]
         return True if np.mean(digits) >0.0 else False
 
 
-    def parse(self, logName, batch_size=5, mask_percentage=1.0, pad_len=150, N=1, d_model=256,
-              dropout=0.1,  lr=0.001, betas=(0.9, 0.999), weight_decay=0.005, nr_epochs=5, num_samples=0, step_size=10):
-        self.logName = logName
+    def load_data(self, batch_size=5, mask_percentage=1.0, pad_len=150, N=1, d_model=256,
+              dropout=0.1,  lr=0.001, betas=(0.9, 0.999), weight_decay=0.005, nr_epochs=5, num_samples=0, step_size=10) -> pd.DataFrame:
+
         self.mask_percentage=mask_percentage
         self.pad_len = pad_len
         self.batch_size = batch_size
@@ -441,10 +451,6 @@ class LogParser:
         self.num_samples = num_samples
         self.nr_epochs = nr_epochs
         self.step_size = step_size
-        self.load_data()
-
-        if not os.path.exists(self.savePath):
-            os.makedirs(self.savePath)
 
         df_len = self.df_log.shape[0]
 
@@ -467,7 +473,6 @@ class LogParser:
             print("Epoch", epoch)
             self.run_epoch(train_dataloader, model,
                       SimpleLossCompute(model.generator, criterion, model_opt))
-            torch.save(model.state_dict(), self.savePath + 'model_parser_' + self.logName + str(epoch) + '.pt')
 
         #model.load_state_dict(torch.load('./AttentionParserResult/model_parser_BGL_2k.log3.pt'))
         #model.cuda()
@@ -499,7 +504,78 @@ class LogParser:
             parsed_logs.append(str(''.join(i)).strip())
 
         df_event = self.outputResult(parsed_logs)
-        df_event.to_csv(self.savePath+self.logName+"_structured.csv", index=False)
+
+        return df_event
+    def parse(self, logName, batch_size=5, mask_percentage=1.0, pad_len=150, N=1, d_model=256,
+              dropout=0.1,  lr=0.001, betas=(0.9, 0.999), weight_decay=0.005, nr_epochs=5, num_samples=0, step_size=10):
+        self.logName = logName
+        self.mask_percentage=mask_percentage
+        self.pad_len = pad_len
+        self.batch_size = batch_size
+        self.N = N
+        self.d_model = d_model
+        self.dropout = dropout
+        self.lr = lr
+        self.betas = betas
+        self.weight_decay = weight_decay
+        self.num_samples = num_samples
+        self.nr_epochs = nr_epochs
+        self.step_size = step_size
+        self.load_data()
+
+
+        df_len = self.df_log.shape[0]
+
+        data_tokenized = []
+
+        for i in trange(0, df_len):
+            tokenized = self.tokenizer.tokenize('<CLS> ' + self.df_log.iloc[i].Content)
+            data_tokenized.append(tokenized)
+
+        train_dataloader, test_dataloader = self.get_dataloaders(data_tokenized)
+
+        criterion = nn.CrossEntropyLoss()
+        model = self.make_model(self.tokenizer.n_words, self.tokenizer.n_words, N=self.N, d_model=self.d_model, d_ff=self.d_model,
+                                dropout=self.dropout, max_len=self.pad_len)
+        model.cuda()
+        model_opt = torch.optim.Adam(model.parameters(), lr=self.lr, betas=self.betas, weight_decay=self.weight_decay)
+
+        for epoch in range(self.nr_epochs):
+            model.train()
+            print("Epoch", epoch)
+            self.run_epoch(train_dataloader, model,
+                      SimpleLossCompute(model.generator, criterion, model_opt))
+
+        #model.load_state_dict(torch.load('./AttentionParserResult/model_parser_BGL_2k.log3.pt'))
+        #model.cuda()
+        results = self.run_test(test_dataloader, model,
+                           SimpleLossCompute(model.generator, criterion, None, is_test=True))
+
+        data_words = []
+        indices_from = []
+
+        for i, (x, y, ind) in enumerate(results):
+
+            # print(ind)
+            for j in range(len(x)):
+                if not self.num_there(self.tokenizer.index2word[y[j]]):
+                    if y[j] in x[j][-self.k:]:
+                        data_words.append(self.tokenizer.index2word[y[j]])
+                    else:
+                        data_words.append("<*>")
+                else:
+                    data_words.append("<*>")
+
+            indices_from += ind.tolist()
+
+        p = pd.DataFrame({"indices": indices_from, "predictions": data_words})
+        p = p.groupby('indices')['predictions'].apply(list).reset_index()
+
+        parsed_logs = []
+        for i in p.predictions.values:
+            parsed_logs.append(str(''.join(i)).strip())
+
+        df_event = self.outputResult(parsed_logs)
 
 
 
@@ -519,10 +595,6 @@ class LogParser:
         test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=self.batch_size)
         return train_dataloader, test_dataloader
 
-
-    def load_data(self):
-        headers, regex = self.generate_logformat_regex(self.log_format)
-        self.df_log = self.log_to_dataframe(os.path.join(self.path, self.logName), regex, headers, self.log_format)
 
 
     def log_to_dataframe(self, log_file, regex, headers, logformat):

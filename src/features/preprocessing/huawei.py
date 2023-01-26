@@ -5,6 +5,7 @@ import logging
 import pandas as pd
 from pathlib import Path
 from src.features.preprocessing.spell import Spell, SpellParameters
+from src.features.preprocessing.nulog import Nulog, NulogParameters
 from tqdm import tqdm
 from typing import List, Dict, Set
 import http
@@ -274,6 +275,8 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             rel_df = self._add_log_drain_clusters(rel_df)
         if self.config.log_parser == "spell":
             rel_df = self._add_log_spell_clusters(rel_df)
+        if self.config.log_parser == "nulog":
+            rel_df = self._add_log_nulog_clusters(rel_df)
         if self.config.log_template_file.exists():
             rel_df = self._add_precalculated_log_templates(rel_df)
         rel_df["timestamp"] = pd.to_datetime(
@@ -418,15 +421,18 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
                 prefix=str(i) + "_",
             )
         return log_result_df
+    def _add_log_nulog_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_df, k=1, nr_epochs=5 , num_samples=0,prefix="fine_")
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=2, nr_epochs=5,num_samples=0, prefix="medium_")
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=3, nr_epochs=5, num_samples=0, prefix="coarse_")
+        return log_result_df
+
     def _add_log_spell_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
         log_result_df = self._add_log_spell_clusters_prefix(log_df=log_df, tau=0.9, prefix="fine_")
         log_result_df = self._add_log_spell_clusters_prefix(log_df=log_result_df, tau=0.7, prefix="medium_")
         log_result_df = self._add_log_spell_clusters_prefix(log_df=log_result_df, tau=0.5, prefix="coarse_")
         return log_result_df
     def _add_log_spell_clusters_prefix(self, log_df: pd.DataFrame, tau: float, prefix: str):
-        all_logs_df = pd.DataFrame(
-            log_df[self.config.log_payload_column_name].dropna().drop_duplicates()
-        )
         spell = Spell(
             SpellParameters(tau=tau), data_df=log_df, data_df_column_name=self.config.log_payload_column_name
         )
@@ -446,6 +452,30 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         )
 
         return spell_result_df
+
+
+    def _add_log_nulog_clusters_prefix(self, log_df: pd.DataFrame, k: int, nr_epochs: int, num_samples: int, prefix: str):
+        nulog = Nulog(
+            NulogParameters(k=k, nr_epochs=nr_epochs, num_samples=num_samples),
+            data_df=log_df,
+            data_df_column_name=self.config.log_payload_column_name
+        )
+        nulog_result_df = nulog.load_data().drop_duplicates().set_index("LineId")
+
+        nulog_result_df = nulog_result_df.rename(
+                columns={
+                    "EventTemplate": prefix + "log_cluster_template",
+                }
+            )
+        nulog_result_df = nulog_result_df.drop(columns=["EventId"])
+        nulog_result_df[prefix + "log_cluster_template"] = (
+            nulog_result_df[prefix + "log_cluster_template"]
+            .fillna("")
+            .astype(str)
+            .replace(np.nan, "", regex=True)
+        )
+
+        return nulog_result_df
 
 class ConcurrentAggregatedLogsDescriptionPreprocessor(Preprocessor):
     def __init__(
