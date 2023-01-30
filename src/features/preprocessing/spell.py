@@ -48,7 +48,7 @@ class Spell(Preprocessor):
         savePath : the path of the output file
         tau : how much percentage of tokens matched to merge a log message
     """
-    def __init__(self, parameters: SpellParameters, data_df: pd.DataFrame, data_df_column_name: str, indir='./', outdir='./result/', log_format=None, rex=[], keep_para=True):
+    def __init__(self, parameters: SpellParameters, data_df: pd.DataFrame, data_df_column_name: str, indir='./', outdir='./result/', log_format=None, rex=[r'((\d+\.){3}\d+,?)+', r'/.+?\s', r'\d+'], keep_para=True):
         self.path = indir
         self.logName = None
         self.savePath = outdir
@@ -91,7 +91,7 @@ class Spell(Preprocessor):
             # Check the template is a subsequence of seq (we use set checking as a proxy here for speedup since
             # incorrect-ordering bad cases rarely occur in logs)
             token_set = set(seq)
-            if all(token in token_set or token == '<*>' for token in logClust.logTemplate):
+            if all(token in token_set or token == '*' for token in logClust.logTemplate):
                 return logClust
         return None
 
@@ -102,7 +102,7 @@ class Spell(Preprocessor):
             if seq[i] in parentn.childD:
                 childn = parentn.childD[seq[i]]
                 if (childn.logClust is not None):
-                    constLM = [w for w in childn.logClust.logTemplate if w != '<*>']
+                    constLM = [w for w in childn.logClust.logTemplate if w != '*']
                     if float(len(constLM)) >= self.tau * length:
                         return childn.logClust
                 else:
@@ -149,17 +149,17 @@ class Spell(Preprocessor):
                 retVal.append(token)
                 lcs.pop()
             else:
-                retVal.append('<*>')
+                retVal.append('*')
             if not lcs:
                 break
         if i < len(seq):
-            retVal.append('<*>')
+            retVal.append('*')
         return retVal
 
     def addSeqToPrefixTree(self, rootn, newCluster):
         parentn = rootn
         seq = newCluster.logTemplate
-        seq = [w for w in seq if w != '<*>']
+        seq = [w for w in seq if w != '*']
 
         for i in range(len(seq)):
             tokenInSeq = seq[i]
@@ -178,7 +178,7 @@ class Spell(Preprocessor):
     def removeSeqFromPrefixTree(self, rootn, newCluster):
         parentn = rootn
         seq = newCluster.logTemplate
-        seq = [w for w in seq if w != '<*>']
+        seq = [w for w in seq if w != '*']
 
         for tokenInSeq in seq:
             if tokenInSeq in parentn.childD:
@@ -242,7 +242,7 @@ class Spell(Preprocessor):
         for idx, line in self.df_log.iterrows():
             logID = line['LineId']
             logmessageL = list(filter(lambda x: x != '', re.split(r'[\s=:,]', self.preprocess(line[self.data_df_column_name]))))
-            constLogMessL = [w for w in logmessageL if w != '<*>']
+            constLogMessL = [w for w in logmessageL if w != '*']
 
             #Find an existing matched log cluster
             matchCluster = self.PrefixTreeMatch(rootNode, constLogMessL, 0)
@@ -303,7 +303,7 @@ class Spell(Preprocessor):
         for idx, line in self.df_log.iterrows():
             logID = line['LineId']
             logmessageL = list(filter(lambda x: x != '', re.split(r'[\s=:,]', self.preprocess(line['Content']))))
-            constLogMessL = [w for w in logmessageL if w != '<*>']
+            constLogMessL = [w for w in logmessageL if w != '*']
 
             #Find an existing matched log cluster
             matchCluster = self.PrefixTreeMatch(rootNode, constLogMessL, 0)
@@ -345,7 +345,7 @@ class Spell(Preprocessor):
 
     def preprocess(self, line):
         for currentRex in self.rex:
-            line = re.sub(currentRex, '<*>', line)
+            line = re.sub(currentRex, '*', line)
         return line
 
     def log_to_dataframe(self, log_file, regex, headers, logformat):
@@ -386,11 +386,11 @@ class Spell(Preprocessor):
         return headers, regex
 
     def get_parameter_list(self, row):
-        template_regex = re.sub(r"\s<.{1,5}>\s", "<*>", row["EventTemplate"])
-        if "<*>" not in template_regex: return []
+        template_regex = re.sub(r"\s<.{1,5}>\s", "*", row["EventTemplate"])
+        if "*" not in template_regex: return []
         template_regex = re.sub(r'([^A-Za-z0-9])', r'\\\1', template_regex)
         template_regex = re.sub(r'\\ +', r'[^A-Za-z0-9]+', template_regex)
-        template_regex = "^" + template_regex.replace("\<\*\>", "(.*?)") + "$"
+        template_regex = "^" + template_regex.replace("\*", "(.*?)") + "$"
         parameter_list = re.findall(template_regex, row[self.data_df_column_name])
         parameter_list = parameter_list[0] if parameter_list else ()
         parameter_list = list(parameter_list) if isinstance(parameter_list, tuple) else [parameter_list]
