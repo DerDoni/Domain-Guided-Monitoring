@@ -16,7 +16,7 @@ import re
 from tqdm import trange
 import random
 
-from keras.preprocessing.sequence import pad_sequences
+from keras_preprocessing.sequence import pad_sequences
 from collections import defaultdict
 from sklearn.preprocessing import minmax_scale
 from torch.utils.data import Dataset, DataLoader
@@ -420,13 +420,13 @@ class NulogParameters:
         self.filters = '([ |:|\(|\)|=|,])|(core.)|(\.{2,})'
 
 class Nulog(Preprocessor):
-    def __init__(self, log_format, params: NulogParameters, data_df: pd.DataFrame, data_df_column_name:str):
+    def __init__(self,  params: NulogParameters, data_df: pd.DataFrame, data_df_column_name:str):
         self.logName = None
         self.filters = params.filters
         self.k = params.k
         self.df_log = data_df
         self.data_df_column_name = data_df_column_name
-        self.log_format = log_format
+#        self.log_format = log_format
         self.tokenizer = LogTokenizer(self.filters)
         self.nr_epochs = params.nr_epochs
         self.num_samples = params.num_samples
@@ -452,12 +452,15 @@ class Nulog(Preprocessor):
         self.nr_epochs = nr_epochs
         self.step_size = step_size
 
+
+        self.df_log.insert(0, 'LineId', None)
+        self.df_log['LineId'] = [i + 1 for i in range(len(self.df_log.index))]
         df_len = self.df_log.shape[0]
 
         data_tokenized = []
 
         for i in trange(0, df_len):
-            tokenized = self.tokenizer.tokenize('<CLS> ' + self.df_log.iloc[i].Content)
+            tokenized = self.tokenizer.tokenize('<CLS> ' + self.df_log.iloc[i].Payload)
             data_tokenized.append(tokenized)
 
         train_dataloader, test_dataloader = self.get_dataloaders(data_tokenized)
@@ -504,8 +507,10 @@ class Nulog(Preprocessor):
             parsed_logs.append(str(''.join(i)).strip())
 
         df_event = self.outputResult(parsed_logs)
+        self.df_log['EventId'] = df_event["EventId"]
+        self.df_log['EventTemplate'] = df_event["EventTemplate"]
+        return self.df_log
 
-        return df_event
     def parse(self, logName, batch_size=5, mask_percentage=1.0, pad_len=150, N=1, d_model=256,
               dropout=0.1,  lr=0.001, betas=(0.9, 0.999), weight_decay=0.005, nr_epochs=5, num_samples=0, step_size=10):
         self.logName = logName
@@ -716,6 +721,7 @@ class Nulog(Preprocessor):
             df_events.append([template_id, pr])
 
         df_event = pd.DataFrame(df_events, columns=['EventId', 'EventTemplate'])
+
         return df_event
 
     def make_model(self, src_vocab, tgt_vocab, N=3,

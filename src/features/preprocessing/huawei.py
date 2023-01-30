@@ -120,6 +120,8 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
                 ),
             )
             return aggregated_log_data[aggregated_log_data["num_events"] > 1]
+        elif self.config.log_parser == "spell":
+            return pd.read_pickle("data/spell.pkl")
         else:
             # Path normally taken with lenas config
             log_only_data = self._load_log_only_data()
@@ -422,9 +424,9 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             )
         return log_result_df
     def _add_log_nulog_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
-        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_df, k=1, nr_epochs=5 , num_samples=0,prefix="fine_")
-        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=2, nr_epochs=5,num_samples=0, prefix="medium_")
-        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=3, nr_epochs=5, num_samples=0, prefix="coarse_")
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_df, k=5, nr_epochs=5 , num_samples=0,prefix="fine_")
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=20, nr_epochs=5,num_samples=0, prefix="medium_")
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=50, nr_epochs=5, num_samples=0, prefix="coarse_")
         return log_result_df
 
     def _add_log_spell_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
