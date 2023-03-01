@@ -6,7 +6,7 @@ from pathlib import Path
 @dataclass_cli.add
 @dataclasses.dataclass
 class ExperimentConfig:
-    n_epochs: int = 10
+    n_epochs: int = 25
     sequence_type: str = "huawei_logs"
     model_type: str = "simple"
     # NOISE

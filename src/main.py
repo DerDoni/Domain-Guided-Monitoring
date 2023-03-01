@@ -21,7 +21,7 @@ def _log_all_configs_to_mlflow():
             mlflow.log_param(full_config_name, str(config_value))
 
 def _main() -> str:
-    mlflow.set_experiment("Domain Guided Monitoring")
+    mlflow.set_experiment("Attention based log template selection")
     with mlflow.start_run() as run:
         _log_all_configs_to_mlflow()
         runner = ExperimentRunner(run.info.run_id)

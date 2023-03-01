@@ -12,8 +12,8 @@ class MlflowHelper:
         self,
         tracking_uri: str = "http://localhost:5000",
         local_mlflow_dir_prefix: str = "../mlruns/",
-        experiment_name: str = "Domain Guided Monitoring",
-        experiment_id: Optional[str] = "719923802334351993",
+        experiment_name: str = "Attention based log template selection",
+        experiment_id: Optional[str] = "2",
         pkl_file: Optional[Path] = None,
     ):
         self.mlflow_client = MlflowClient(tracking_uri=tracking_uri)

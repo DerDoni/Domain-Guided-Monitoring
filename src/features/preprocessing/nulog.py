@@ -493,9 +493,9 @@ class Nulog(Preprocessor):
                     if y[j] in x[j][-self.k:]:
                         data_words.append(self.tokenizer.index2word[y[j]])
                     else:
-                        data_words.append("<*>")
+                        data_words.append("*")
                 else:
-                    data_words.append("<*>")
+                    data_words.append("*")
 
             indices_from += ind.tolist()
 
@@ -567,9 +567,9 @@ class Nulog(Preprocessor):
                     if y[j] in x[j][-self.k:]:
                         data_words.append(self.tokenizer.index2word[y[j]])
                     else:
-                        data_words.append("<*>")
+                        data_words.append("*")
                 else:
-                    data_words.append("<*>")
+                    data_words.append("*")
 
             indices_from += ind.tolist()
 

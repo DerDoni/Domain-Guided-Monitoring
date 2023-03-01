@@ -67,10 +67,11 @@ class HuaweiPreprocessorConfig:
     min_logs_per_trace: int = 2
     min_causality: float = 0.0
     log_only_causality: bool = False
-    relevant_log_column: str = "fine_log_cluster_template"
+    relevant_log_column: str = "fine_log_cluster_template_drain"
     log_template_file: Path = Path("data/attention_log_templates.csv")
     remove_dates_from_payload: bool = True
     log_parser: str = "drain"
+    use_precomputed_log_templates: bool = False
 
 class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
     sequence_column_name: str = "all_events"
@@ -82,10 +83,21 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         self.relevant_columns = set(
             [x for x in self.config.relevant_aggregated_log_columns]
         )
-        self.relevant_columns.add("fine_log_cluster_template")
-        self.relevant_columns.add("coarse_log_cluster_template")
-        self.relevant_columns.add("medium_log_cluster_template")
-        if config.log_parser == "drain":
+        if self.config.log_parser != "all":
+            self.relevant_columns.add("fine_log_cluster_template")
+            self.relevant_columns.add("coarse_log_cluster_template")
+            self.relevant_columns.add("medium_log_cluster_template")
+        else:
+            self.relevant_columns.add("fine_log_cluster_template_drain")
+            self.relevant_columns.add("coarse_log_cluster_template_drain")
+            self.relevant_columns.add("medium_log_cluster_template_drain")
+            self.relevant_columns.add("fine_log_cluster_template_spell")
+            self.relevant_columns.add("coarse_log_cluster_template_spell")
+            self.relevant_columns.add("medium_log_cluster_template_spell")
+            self.relevant_columns.add("fine_log_cluster_template_nulog")
+            self.relevant_columns.add("coarse_log_cluster_template_nulog")
+            self.relevant_columns.add("medium_log_cluster_template_nulog")
+        if self.config.log_parser == "drain":
             self.relevant_columns.add("url_cluster_template")
         for i in range(len(self.config.drain_log_depths)):
             self.relevant_columns.add(str(i) + "_log_cluster_template")
@@ -120,13 +132,16 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
                 ),
             )
             return aggregated_log_data[aggregated_log_data["num_events"] > 1]
-        elif self.config.log_parser == "spell":
-            return pd.read_pickle("data/spell.pkl")
         else:
             # Path normally taken with lenas config
-            log_only_data = self._load_log_only_data()
-            log_only_data["grouper"] = 1
-            return self._aggregate_per(log_only_data, aggregation_column="grouper")
+            if not self.config.use_precomputed_log_templates:
+                log_only_data = self._load_log_only_data()
+                log_only_data["grouper"] = 1
+                log_df =  self._aggregate_per(log_only_data, aggregation_column="grouper")
+                log_df.to_csv("templates.csv")
+                return log_df
+            else:
+                return pd.read_csv("templates.csv")
 
     def _load_data_per_trace(self) -> pd.DataFrame:
         full_df = self.load_full_data()
@@ -273,11 +288,11 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             + [self.config.log_payload_column_name]
             + [self.config.url_column_name]
         ]
-        if self.config.log_parser == "drain":
+        if self.config.log_parser in ["drain", "all"]:
             rel_df = self._add_log_drain_clusters(rel_df)
-        if self.config.log_parser == "spell":
+        if self.config.log_parser in ["spell", "all"]:
             rel_df = self._add_log_spell_clusters(rel_df)
-        if self.config.log_parser == "nulog":
+        if self.config.log_parser in ["nulog", "all"]:
             rel_df = self._add_log_nulog_clusters(rel_df)
         if self.config.log_template_file.exists():
             rel_df = self._add_precalculated_log_templates(rel_df)
@@ -355,35 +370,68 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             data_df_column_name=self.config.log_payload_column_name,
         )
         drain_result_df = drain.load_data().drop_duplicates().set_index("log_idx")
-        log_result_df = (
-            pd.merge(
-                log_df,
+
+        if self.config.log_parser == "drain":
+            log_result_df = (
                 pd.merge(
-                    all_logs_df,
-                    drain_result_df,
-                    left_index=True,
-                    right_index=True,
+                    log_df,
+                    pd.merge(
+                        all_logs_df,
+                        drain_result_df,
+                        left_index=True,
+                        right_index=True,
+                        how="left",
+                    )
+                    .drop_duplicates()
+                    .reset_index(drop=True),
+                    on=self.config.log_payload_column_name,
                     how="left",
                 )
-                .drop_duplicates()
-                .reset_index(drop=True),
-                on=self.config.log_payload_column_name,
-                how="left",
+                .rename(
+                    columns={
+                        "cluster_template": prefix + "log_cluster_template",
+                        "cluster_path": prefix + "log_cluster_path",
+                    }
+                )
+                .drop(columns=["cluster_id"])
             )
-            .rename(
-                columns={
-                    "cluster_template": prefix + "log_cluster_template",
-                    "cluster_path": prefix + "log_cluster_path",
-                }
+            log_result_df[prefix + "log_cluster_template"] = (
+                log_result_df[prefix + "log_cluster_template"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
             )
-            .drop(columns=["cluster_id"])
-        )
-        log_result_df[prefix + "log_cluster_template"] = (
-            log_result_df[prefix + "log_cluster_template"]
-            .fillna("")
-            .astype(str)
-            .replace(np.nan, "", regex=True)
-        )
+
+        else:
+            log_result_df = (
+                pd.merge(
+                    log_df,
+                    pd.merge(
+                        all_logs_df,
+                        drain_result_df,
+                        left_index=True,
+                        right_index=True,
+                        how="left",
+                    )
+                    .drop_duplicates()
+                    .reset_index(drop=True),
+                    on=self.config.log_payload_column_name,
+                    how="left",
+                )
+                .rename(
+                    columns={
+                        "cluster_template": prefix + "log_cluster_template_drain",
+                        "cluster_path": prefix + "log_cluster_path",
+                    }
+                )
+                .drop(columns=["cluster_id"])
+            )
+            log_result_df[prefix + "log_cluster_template_drain"] = (
+                log_result_df[prefix + "log_cluster_template_drain"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
+            )
         return log_result_df
 
     def _add_precalculated_log_templates(self, log_df: pd.DataFrame) -> pd.DataFrame:
@@ -440,18 +488,37 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         )
         spell_result_df = spell.load_data().drop_duplicates().set_index("LineId")
 
-        spell_result_df = spell_result_df.rename(
-                columns={
-                    "EventTemplate": prefix + "log_cluster_template",
-                }
+        if self.config.log_parser == "spell":
+            spell_result_df = spell_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template",
+                    }
+                )
+            spell_result_df = spell_result_df.drop(columns=["EventId"])
+            spell_result_df[prefix + "log_cluster_template"] = (
+                spell_result_df[prefix + "log_cluster_template"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
             )
-        spell_result_df = spell_result_df.drop(columns=["EventId"])
-        spell_result_df[prefix + "log_cluster_template"] = (
-            spell_result_df[prefix + "log_cluster_template"]
-            .fillna("")
-            .astype(str)
-            .replace(np.nan, "", regex=True)
-        )
+
+
+
+
+
+        else:
+            spell_result_df = spell_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template_spell",
+                    }
+                )
+            spell_result_df = spell_result_df.drop(columns=["EventId"])
+            spell_result_df[prefix + "log_cluster_template_spell"] = (
+                spell_result_df[prefix + "log_cluster_template_spell"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
+            )
 
         return spell_result_df
 
@@ -464,18 +531,33 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
         )
         nulog_result_df = nulog.load_data().drop_duplicates().set_index("LineId")
 
-        nulog_result_df = nulog_result_df.rename(
-                columns={
-                    "EventTemplate": prefix + "log_cluster_template",
-                }
+        if self.config.log_parser == "nulog":
+            nulog_result_df = nulog_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template",
+                    }
+                )
+            nulog_result_df = nulog_result_df.drop(columns=["EventId"])
+            nulog_result_df[prefix + "log_cluster_template"] = (
+                nulog_result_df[prefix + "log_cluster_template"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
             )
-        nulog_result_df = nulog_result_df.drop(columns=["EventId"])
-        nulog_result_df[prefix + "log_cluster_template"] = (
-            nulog_result_df[prefix + "log_cluster_template"]
-            .fillna("")
-            .astype(str)
-            .replace(np.nan, "", regex=True)
-        )
+
+        else:
+            nulog_result_df = nulog_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template_nulog",
+                    }
+                )
+            nulog_result_df = nulog_result_df.drop(columns=["EventId"])
+            nulog_result_df[prefix + "log_cluster_template_nulog"] = (
+                nulog_result_df[prefix + "log_cluster_template_nulog"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
+            )
 
         return nulog_result_df
 
