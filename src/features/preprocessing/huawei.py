@@ -71,7 +71,8 @@ class HuaweiPreprocessorConfig:
     log_template_file: Path = Path("data/attention_log_templates.csv")
     remove_dates_from_payload: bool = True
     log_parser: str = "drain"
-    use_precomputed_log_templates: bool = False
+    use_precomputed_log_templates: bool = True
+    parser_combination: str = "drain+nulog"
 
 class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
     sequence_column_name: str = "all_events"
@@ -91,9 +92,9 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             self.relevant_columns.add("fine_log_cluster_template_drain")
             self.relevant_columns.add("coarse_log_cluster_template_drain")
             self.relevant_columns.add("medium_log_cluster_template_drain")
-            self.relevant_columns.add("fine_log_cluster_template_spell")
-            self.relevant_columns.add("coarse_log_cluster_template_spell")
-            self.relevant_columns.add("medium_log_cluster_template_spell")
+#            self.relevant_columns.add("fine_log_cluster_template_spell")
+#            self.relevant_columns.add("coarse_log_cluster_template_spell")
+#            self.relevant_columns.add("medium_log_cluster_template_spell")
             self.relevant_columns.add("fine_log_cluster_template_nulog")
             self.relevant_columns.add("coarse_log_cluster_template_nulog")
             self.relevant_columns.add("medium_log_cluster_template_nulog")
@@ -138,10 +139,10 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
                 log_only_data = self._load_log_only_data()
                 log_only_data["grouper"] = 1
                 log_df =  self._aggregate_per(log_only_data, aggregation_column="grouper")
-                log_df.to_csv("templates.csv")
+                log_df.to_pickle("templates.pkl")
                 return log_df
             else:
-                return pd.read_csv("templates.csv")
+                return pd.read_pickle("templates.pkl")
 
     def _load_data_per_trace(self) -> pd.DataFrame:
         full_df = self.load_full_data()

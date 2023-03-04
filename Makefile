@@ -12,8 +12,8 @@ CONDA_SH = Miniconda3-latest-Linux-x86_64.sh
 CONDA_DIR = ~/anaconda3
 
 DATA_DIR = data
-KNOWLEDGE_TYPES = simple
-COLUMN_NAME = fine_log_cluster_template coarse_log_cluster_template medium_log_cluster_template
+KNOWLEDGE_TYPES = simple  simple simple simple simple simple simple simple simple simple
+COLUMN_NAME = fine_log_cluster_template_drain medium_log_cluster_template_drain coarse_log_cluster_template_drain fine_log_cluster_template_nulog medium_log_cluster_template_nulog coarse_log_cluster_template_nulog
 
 install:
 ifneq (,$(wildcard ${CONDA_DIR}))
@@ -42,29 +42,28 @@ notebook:
 run: 
 	./${CONDA_DIR}/miniconda3/envs/${CONDA_ENV_NAME}/bin/python main.py ${ARGS}
 
-run_huawei:
+run_attention:
 	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
 	echo "Starting experiment for huawei_logs with knowledge type " $$knowledge_type "....." ; \
 		${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/python main.py \
 			--experimentconfig_model_type $$knowledge_type \
 			--huaweipreprocessorconfig_min_causality 0.01 \
-			--huaweipreprocessorconfig_relevant_log_column fine_log_cluster_template \
+			--huaweipreprocessorconfig_relevant_log_column coarse_log_cluster_template_drain \
 			--no-modelconfig_base_feature_embeddings_trainable \
 			--no-modelconfig_base_hidden_embeddings_trainable \
-			--sequenceconfig_x_sequence_column_name fine_log_cluster_template \
 			--sequenceconfig_y_sequence_column_name attributes \
 			--sequenceconfig_max_window_size 10 \
 			--sequenceconfig_min_window_size 10 \
 			--experimentconfig_multilabel_classification \
 			--sequenceconfig_flatten_y \
 			--sequenceconfig_flatten_x \
-			--huaweipreprocessorconfig_log_parser spell \
+			--huaweipreprocessorconfig_log_parser all \
 			${ARGS} ; \
 	done ; \
 
 
 
-run_attention:
+run_huawei:
 	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
 		for col_name in ${COLUMN_NAME} ; do \
 			${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/python main.py \
@@ -85,6 +84,7 @@ run_attention:
 				--modelconfig_rnn_dim 200 \
 				--modelconfig_embedding_dim 300 \
 				--modelconfig_attention_dim 100 \
+				--huaweipreprocessorconfig_log_parser all \
 				${ARGS} ; \
 		done ; \
 	done ; \
