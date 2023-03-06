@@ -9,7 +9,7 @@
 CONDA_ENV_NAME = lena
 CONDA_URL = https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 CONDA_SH = Miniconda3-latest-Linux-x86_64.sh
-CONDA_DIR = ~/anaconda3
+CONDA_DIR = ~/miniconda3
 
 DATA_DIR = data
 KNOWLEDGE_TYPES = simple  simple simple simple simple simple simple simple simple simple
