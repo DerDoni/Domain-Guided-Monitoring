@@ -196,9 +196,13 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             )
 
         merged_df["all_events"] = merged_df[self.relevant_columns].values.tolist()
+
+        merged_df["templates"] = merged_df[[x for x in self.relevant_columns if "log_cluster_template" in x]].values.tolist()
+
         merged_df["attributes"] = merged_df[
             [x for x in self.relevant_columns if not "log_cluster_template" in x]
         ].values.tolist()
+
         for log_template_column in [
             x for x in self.relevant_columns if "log_cluster_template" in x
         ]:
@@ -211,7 +215,7 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             .agg(
                 {
                     column_name: lambda x: list(x)
-                    for column_name in ["all_events", "attributes",]
+                    for column_name in ["all_events", "attributes", "templates",]
                     + [x for x in self.relevant_columns if "log_cluster_template" in x]
                 }
             )
@@ -224,7 +228,7 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             self.config.relevant_log_column
         ].apply(lambda x: len(x))
         return events_per_trace[
-            ["num_logs", "num_events", "all_events", "attributes",]
+            ["num_logs", "num_events", "all_events", "attributes", "templates",]
             + [x for x in self.relevant_columns if "log_cluster_template" in x]
         ]
 

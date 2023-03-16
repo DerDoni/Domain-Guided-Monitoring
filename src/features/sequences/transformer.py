@@ -450,7 +450,8 @@ class NextPartialSequenceTransformerFromDataframe(NextPartialSequenceTransformer
                 self.config.x_sequence_column_name is not None
                 and len(self.config.x_sequence_column_name) > 0
             )
-            else sequence_column_name,
+            # here is the place to fix
+            else "templates",
         )
         if len(self.valid_y_features) == 0:
             y_vocab = self._generate_vocab(
