@@ -9,6 +9,7 @@ def _log_all_configs_to_mlflow():
     for config in [
         ExperimentConfig(),
         preprocessing.huawei.HuaweiPreprocessorConfig(),
+        preprocessing.tbird.ThunderBirdPreprocessorConfig(),
         preprocessing.mimic.MimicPreprocessorConfig(),
         sequences.SequenceConfig(),
         models.ModelConfig(),
