@@ -127,7 +127,7 @@ class ThunderBirdLogsPreprocessor(Preprocessor):
             self.config.relevant_log_column
         ].apply(lambda x: len(x))
         return events_per_trace[
-            ["num_logs", "num_events", "all_events", "attributes",]
+            ["num_logs", "num_events", "all_events", "attributes", "templates",]
             + [x for x in self.relevant_columns if "log_cluster_template" in x]
         ]
 
