@@ -480,9 +480,9 @@ class ExperimentRunner:
             self.sequence_column_name = sequence_preprocessor.sequence_column_name # all_events
             return sequence_preprocessor.load_data()
         elif self.config.sequence_type == "hdfs":
-            tbird_config = preprocessing.ThunderBirdPreprocessorConfig()
-            sequence_preprocessor = preprocessing.ThunderBirdLogsPreprocessor(
-                tbird_config,
+            hdfs_config = preprocessing.HDFSPreprocessorConfig()
+            sequence_preprocessor = preprocessing.HDFSLogsPreprocessor(
+                hdfs_config,
             )
             self.sequence_column_name = sequence_preprocessor.sequence_column_name
             return sequence_preprocessor.load_data(max_data_size=-1)
