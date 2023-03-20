@@ -10,6 +10,8 @@ from .base import Preprocessor
 from collections import Counter
 from .drain import Drain, DrainParameters
 import numpy as np
+from src.features.preprocessing.spell import Spell, SpellParameters
+from src.features.preprocessing.nulog import Nulog, NulogParameters
 
 
 @dataclass_cli.add
@@ -155,10 +157,10 @@ class ThunderBirdLogsPreprocessor(Preprocessor):
 
         if self.config.log_parser in ["drain", "all"]:
             rel_df = self._add_log_drain_clusters(rel_df)
-#        if self.config.log_parser in ["spell", "all"]:
-#            rel_df = self._add_log_spell_clusters(rel_df)
-#        if self.config.log_parser in ["nulog", "all"]:
-#            rel_df = self._add_log_nulog_clusters(rel_df)
+        if self.config.log_parser in ["spell", "all"]:
+            rel_df = self._add_log_spell_clusters(rel_df)
+        if self.config.log_parser in ["nulog", "all"]:
+            rel_df = self._add_log_nulog_clusters(rel_df)
 
         if self.config.log_template_file.exists():
             rel_df = self._add_precalculated_log_templates(rel_df)
@@ -288,6 +290,99 @@ class ThunderBirdLogsPreprocessor(Preprocessor):
                 prefix=str(i) + "_",
             )
         return log_result_df
+
+
+
+    def _add_log_spell_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
+        log_result_df = self._add_log_spell_clusters_prefix(log_df=log_df, tau=0.9, prefix="fine_")
+        log_result_df = self._add_log_spell_clusters_prefix(log_df=log_result_df, tau=0.7, prefix="medium_")
+        log_result_df = self._add_log_spell_clusters_prefix(log_df=log_result_df, tau=0.5, prefix="coarse_")
+        return log_result_df
+    def _add_log_spell_clusters_prefix(self, log_df: pd.DataFrame, tau: float, prefix: str):
+        spell = Spell(
+            SpellParameters(tau=tau), data_df=log_df, data_df_column_name=self.config.log_payload_column_name
+        )
+        spell_result_df = spell.load_data().drop_duplicates().set_index("LineId")
+
+        if self.config.log_parser == "spell":
+            spell_result_df = spell_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template",
+                    }
+                )
+            spell_result_df = spell_result_df.drop(columns=["EventId"])
+            spell_result_df[prefix + "log_cluster_template"] = (
+                spell_result_df[prefix + "log_cluster_template"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
+            )
+
+
+
+
+
+        else:
+            spell_result_df = spell_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template_spell",
+                    }
+                )
+            spell_result_df = spell_result_df.drop(columns=["EventId"])
+            spell_result_df[prefix + "log_cluster_template_spell"] = (
+                spell_result_df[prefix + "log_cluster_template_spell"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
+            )
+
+        return spell_result_df
+
+
+    def _add_log_nulog_clusters_prefix(self, log_df: pd.DataFrame, k: int, nr_epochs: int, num_samples: int, prefix: str):
+        nulog = Nulog(
+            NulogParameters(k=k, nr_epochs=nr_epochs, num_samples=num_samples),
+            data_df=log_df,
+            data_df_column_name=self.config.log_payload_column_name
+        )
+        nulog_result_df = nulog.load_data().drop_duplicates().set_index("LineId")
+
+        if self.config.log_parser == "nulog":
+            nulog_result_df = nulog_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template",
+                    }
+                )
+            nulog_result_df = nulog_result_df.drop(columns=["EventId"])
+            nulog_result_df[prefix + "log_cluster_template"] = (
+                nulog_result_df[prefix + "log_cluster_template"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
+            )
+
+        else:
+            nulog_result_df = nulog_result_df.rename(
+                    columns={
+                        "EventTemplate": prefix + "log_cluster_template_nulog",
+                    }
+                )
+            nulog_result_df = nulog_result_df.drop(columns=["EventId"])
+            nulog_result_df[prefix + "log_cluster_template_nulog"] = (
+                nulog_result_df[prefix + "log_cluster_template_nulog"]
+                .fillna("")
+                .astype(str)
+                .replace(np.nan, "", regex=True)
+            )
+
+        return nulog_result_df
+
+    def _add_log_nulog_clusters(self, log_df: pd.DataFrame) -> pd.DataFrame:
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_df, k=5, nr_epochs=5 , num_samples=0,prefix="fine_")
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=20, nr_epochs=5,num_samples=0, prefix="medium_")
+        log_result_df = self._add_log_nulog_clusters_prefix(log_df=log_result_df, k=50, nr_epochs=5, num_samples=0, prefix="coarse_")
+        return log_result_df
+
 
 class AlgorithmChoiceError(Exception):
     """Exception raised for errors when algorithm doesn't exist."""
