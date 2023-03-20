@@ -10,6 +10,7 @@ def _log_all_configs_to_mlflow():
         ExperimentConfig(),
         preprocessing.huawei.HuaweiPreprocessorConfig(),
         preprocessing.tbird.ThunderBirdPreprocessorConfig(),
+        preprocessing.hdfs.HDFSPreprocessorConfig(),
         preprocessing.mimic.MimicPreprocessorConfig(),
         sequences.SequenceConfig(),
         models.ModelConfig(),

@@ -7,3 +7,4 @@ from .c24 import C24FraudPreprocessor, C24HierarchyPreprocessor, C24Preprocessor
 from .drain import Drain, DrainParameters
 from .huawei_traces import HuaweiTracePreprocessor
 from .tbird import ThunderBirdLogsPreprocessor, ThunderBirdPreprocessorConfig
+from .hdfs import HDFSLogsPreprocessor, HDFSPreprocessorConfig
