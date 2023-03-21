@@ -189,7 +189,7 @@ class MlflowHelper:
     def huawei_run_df(
         self, include_noise: bool = False, include_refinements: bool = False,
         risk_prediction: bool = False,
-        valid_x_columns: List[str]=["coarse_cluster_template", "fine_log_cluster_template", ""],
+        valid_x_columns: List[str]=["coarse_cluster_template", "fine_log_cluster_template", "medium_log_cluster_template", ""],
         valid_y_columns: List[str]=["attributes"],
         include_drain_hierarchy: bool=False,
     ) -> pd.DataFrame:
@@ -266,7 +266,7 @@ class MlflowHelper:
     def hdfs_run_df(
         self, include_noise: bool = False, include_refinements: bool = False,
         risk_prediction: bool = False,
-        valid_x_columns: List[str]=["coarse_cluster_template", "fine_log_cluster_template", ""],
+        valid_x_columns: List[str]=["coarse_cluster_template", "fine_log_cluster_template", "medium_log_cluster_template",""],
         valid_y_columns: List[str]=["attributes"],
     ) -> pd.DataFrame:
         hdfs_run_df = self.run_df[
@@ -304,6 +304,42 @@ class MlflowHelper:
             ]
 
         return hdfs_run_df
+
+    def tbird_run_df(
+        self, include_noise: bool = False,
+        risk_prediction: bool = False,
+        valid_x_columns: List[str]=["coarse_cluster_template", "fine_log_cluster_template", "medium_log_cluster_template", ""],
+        valid_y_columns: List[str]=["attributes"],
+    ) -> pd.DataFrame:
+        tbird_run_df = self.run_df[
+            (self.run_df["data_tags_sequence_type"] == "tbird_logs")
+        ]
+
+        if risk_prediction:
+            tbird_run_df = tbird_run_df[
+                (tbird_run_df["data_tags_task_type"] == "risk_prediction") &
+                (tbird_run_df["data_params_ModelConfigfinal_activation_function"] == "sigmoid")
+            ]
+        else:
+            tbird_run_df = tbird_run_df[
+                (tbird_run_df["data_params_ModelConfigfinal_activation_function"] == "softmax")
+                & (tbird_run_df["data_params_SequenceConfigflatten_y"] == "True")
+            ]
+
+        if len(valid_x_columns) > 0:
+            tbird_run_df = tbird_run_df[
+                tbird_run_df["data_params_SequenceConfigx_sequence_column_name"].apply(lambda x: x in valid_x_columns)
+            ]
+        if len(valid_y_columns) > 0:
+            tbird_run_df = tbird_run_df[
+                tbird_run_df["data_params_SequenceConfigy_sequence_column_name"].apply(lambda x: x in valid_y_columns)
+            ]
+
+        if not include_noise and 'data_tags_noise_type' in tbird_run_df.columns:
+            tbird_run_df = tbird_run_df[
+                (tbird_run_df["data_tags_noise_type"].fillna("").apply(len) == 0)
+            ]
+        return tbird_run_df
 
     def _load_metrics_from_local(self, run_id: str) -> Optional[Dict[str, List[float]]]:
         local_run_dir = Path(self.local_mlflow_dir + "/" + run_id + "/metrics/")
