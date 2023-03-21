@@ -28,7 +28,7 @@ class MlflowHelper:
 
     def query_valid_runs(self, 
             pkl_file: Optional[Path] = None, 
-            valid_sequence_types: List[str] = ['mimic', 'huawei_logs'], 
+            valid_sequence_types: List[str] = ['mimic', 'huawei_logs', 'hdfs', 'tbird_logs'],
             filter_string_suffix: Optional[str] = " and params.ModelConfigrnn_type = 'gru'"):
         for sequence_type in valid_sequence_types:
             filter_string = "tags.sequence_type = '" + sequence_type + "'"
@@ -260,6 +260,50 @@ class MlflowHelper:
             ]
 
         return huawei_run_df
+
+
+
+    def hdfs_run_df(
+        self, include_noise: bool = False, include_refinements: bool = False,
+        risk_prediction: bool = False,
+        valid_x_columns: List[str]=["coarse_cluster_template", "fine_log_cluster_template", ""],
+        valid_y_columns: List[str]=["attributes"],
+    ) -> pd.DataFrame:
+        hdfs_run_df = self.run_df[
+            (self.run_df["data_tags_sequence_type"] == "hdfs")
+        ]
+
+        if risk_prediction:
+            hdfs_run_df = hdfs_run_df[
+                (hdfs_run_df["data_tags_task_type"] == "risk_prediction") &
+                (hdfs_run_df["data_params_ModelConfigfinal_activation_function"] == "sigmoid")
+            ]
+        else:
+            hdfs_run_df = hdfs_run_df[
+                (hdfs_run_df["data_params_ModelConfigfinal_activation_function"] == "softmax")
+                & (hdfs_run_df["data_params_SequenceConfigflatten_y"] == "True")
+            ]
+
+        if len(valid_x_columns) > 0:
+            hdfs_run_df = hdfs_run_df[
+                hdfs_run_df["data_params_SequenceConfigx_sequence_column_name"].apply(lambda x: x in valid_x_columns)
+            ]
+        if len(valid_y_columns) > 0:
+            hdfs_run_df = hdfs_run_df[
+                hdfs_run_df["data_params_SequenceConfigy_sequence_column_name"].apply(lambda x: x in valid_y_columns)
+            ]
+
+        if not include_noise and 'data_tags_noise_type' in hdfs_run_df.columns:
+            hdfs_run_df = hdfs_run_df[
+                (hdfs_run_df["data_tags_noise_type"].fillna("").apply(len) == 0)
+            ]
+        if not include_refinements and 'data_tags_refinement_type' in hdfs_run_df.columns:
+            hdfs_run_df = hdfs_run_df[
+                (hdfs_run_df["data_tags_refinement_type"].fillna("") == "")
+                & (hdfs_run_df["data_params_HuaweiPreprocessorConfigmin_causality"].fillna(0.0).astype(str) == "0.01")
+            ]
+
+        return hdfs_run_df
 
     def _load_metrics_from_local(self, run_id: str) -> Optional[Dict[str, List[float]]]:
         local_run_dir = Path(self.local_mlflow_dir + "/" + run_id + "/metrics/")
