@@ -50,7 +50,7 @@ class BGLPreprocessorConfig:
     parser_combination: str = ""
 
 
-class BGLPreprocessor(Preprocessor):
+class BGLLogsPreprocessor(Preprocessor):
     sequence_column_name: str = "all_events"
 
     def __init__(self, config: BGLPreprocessorConfig):

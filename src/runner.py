@@ -489,7 +489,7 @@ class ExperimentRunner:
 
         elif self.config.sequence_type == "bgl":
             bgl_config = preprocessing.BGLPreprocessorConfig()
-            sequence_preprocessor = preprocessing.BGLPreprocessor(
+            sequence_preprocessor = preprocessing.BGLLogsPreprocessor(
                 bgl_config,
             )
             self.sequence_column_name = sequence_preprocessor.sequence_column_name
