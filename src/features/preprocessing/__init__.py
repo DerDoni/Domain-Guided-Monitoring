@@ -8,3 +8,4 @@ from .drain import Drain, DrainParameters
 from .huawei_traces import HuaweiTracePreprocessor
 from .tbird import ThunderBirdLogsPreprocessor, ThunderBirdPreprocessorConfig
 from .hdfs import HDFSLogsPreprocessor, HDFSPreprocessorConfig
+from .bgl import BGLLogsPreprocessor, BGLPreprocessorConfig

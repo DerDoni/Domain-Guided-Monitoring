@@ -487,6 +487,13 @@ class ExperimentRunner:
             self.sequence_column_name = sequence_preprocessor.sequence_column_name
             return sequence_preprocessor.load_data(max_data_size=-1)
 
+        elif self.config.sequence_type == "bgl":
+            bgl_config = preprocessing.BGLPreprocessorConfig()
+            sequence_preprocessor = preprocessing.BGLPreprocessor(
+                bgl_config,
+            )
+            self.sequence_column_name = sequence_preprocessor.sequence_column_name
+            return sequence_preprocessor.load_data(max_data_size=-1)
         elif self.config.sequence_type == "tbird_logs":
             tbird_config = preprocessing.ThunderBirdPreprocessorConfig()
             sequence_preprocessor = preprocessing.ThunderBirdLogsPreprocessor(
