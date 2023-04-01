@@ -12,7 +12,7 @@ def _log_all_configs_to_mlflow():
         preprocessing.tbird.ThunderBirdPreprocessorConfig(),
         preprocessing.hdfs.HDFSPreprocessorConfig(),
         preprocessing.mimic.MimicPreprocessorConfig(),
-        preprocessing.bgl.BGLLogsPreprocessorConfig(),
+        preprocessing.bgl.BGLPreprocessorConfig(),
         sequences.SequenceConfig(),
         models.ModelConfig(),
         models.TextualPaperModelConfig(),
