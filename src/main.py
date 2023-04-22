@@ -7,10 +7,6 @@ from src import refinement
 
 import tensorflow as tf
 
-from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.keras import mixed_precision
-
 def _log_all_configs_to_mlflow():
     for config in [
         ExperimentConfig(),
@@ -30,7 +26,6 @@ def _log_all_configs_to_mlflow():
             mlflow.log_param(full_config_name, str(config_value))
 
 def _main() -> str:
-    mixed_precision.set_global_policy('mixed_float16')
     mlflow.set_experiment("BGL")
     with mlflow.start_run() as run:
         _log_all_configs_to_mlflow()
