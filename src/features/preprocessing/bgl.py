@@ -26,6 +26,7 @@ class BGLPreprocessorConfig:
             "Code2",
             "Component1",
             "Component2",
+            "Label",
         ],
     )
     aggregate_per_max_number: int = -1
@@ -119,7 +120,7 @@ class BGLLogsPreprocessor(Preprocessor):
             .agg(
                 {
                     column_name: lambda x: list(x)
-                    for column_name in ["all_events", "attributes", "templates"]
+                    for column_name in ["all_events", "attributes", "templates", "label"]
                     + [x for x in self.relevant_columns if "log_cluster_template" in x]
                 }
             )
@@ -132,7 +133,7 @@ class BGLLogsPreprocessor(Preprocessor):
             self.config.relevant_log_column
         ].apply(lambda x: len(x))
         return events_per_trace[
-            ["num_logs", "num_events", "all_events", "attributes", "templates"]
+            ["num_logs", "num_events", "all_events", "attributes", "templates", "label"]
             + [x for x in self.relevant_columns if "log_cluster_template" in x]
         ]
 
