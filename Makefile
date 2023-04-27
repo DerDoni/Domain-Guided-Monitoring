@@ -16,7 +16,8 @@ KNOWLEDGE_TYPES = simple simple simple simple simple
 COLUMN_NAME = fine_log_cluster_template medium_log_cluster_template coarse_log_cluster_template
 ALL_COLUMNS = fine_log_cluster_template_drain medium_log_cluster_template_drain coarse_log_cluster_template_drain fine_log_cluster_template_spell medium_log_cluster_template_spell coarse_log_cluster_template_spell fine_log_cluster_template_nulog medium_log_cluster_template_nulog coarse_log_cluster_template_nulog
 HUAWEI_LOGS = logs_aggregated_concurrent_2000.csv logs_aggregated_concurrent_20000.csv logs_aggregated_concurrent_200000.csv
-ALGOS = spell
+ALGOS = spell nulog drain
+NULOG_SPELL = fine_log_cluster_template_spell medium_log_cluster_template_spell coarse_log_cluster_template_spell fine_log_cluster_template_nulog medium_log_cluster_template_nulog coarse_log_cluster_template_nulog
 
 install:
 ifneq (,$(wildcard ${CONDA_DIR}))
@@ -118,6 +119,32 @@ run_tbird:
 		done ; \
 	done ; \
 
+run_tbird_all:
+	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
+		for col_name in ${NULOG_SPELL} ; do \
+			${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/python main.py \
+				--experimentconfig_sequence_type tbird_logs \
+				--experimentconfig_model_type $$knowledge_type \
+				--experimentconfig_batch_size 32 \
+				--no-modelconfig_base_feature_embeddings_trainable \
+				--no-modelconfig_base_hidden_embeddings_trainable \
+				--sequenceconfig_y_sequence_column_name attributes \
+				--sequenceconfig_x_sequence_column_name $$col_name \
+				--thunderbirdpreprocessorconfig_relevant_log_column $$col_name \
+				--sequenceconfig_max_window_size 10 \
+				--sequenceconfig_min_window_size 10 \
+				--experimentconfig_multilabel_classification \
+				--sequenceconfig_flatten_y \
+				--modelconfig_rnn_type gru \
+				--modelconfig_rnn_dim 200 \
+				--modelconfig_embedding_dim 300 \
+				--modelconfig_attention_dim 100 \
+				--thunderbirdpreprocessorconfig_log_parser all \
+				${ARGS} ; \
+		done ; \
+	done ; \
+
+
 run_tbird_attention:
 	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
 	echo "Starting experiment for huawei_logs with knowledge type " $$knowledge_type "....." ; \
@@ -133,7 +160,7 @@ run_tbird_attention:
 			--sequenceconfig_flatten_y \
 			--sequenceconfig_flatten_x \
 			--thunderbirdpreprocessorconfig_log_parser all \
-			--thunderbirdpreprocessorconfig_relevant_log_column fine_log_cluster_template_drain \
+			--thunderbirdpreprocessorconfig_relevant_log_column fine_log_cluster_template_spell \
 			${ARGS} ; \
 	done ; \
 
@@ -149,7 +176,7 @@ run_bgl:
 					--no-modelconfig_base_hidden_embeddings_trainable \
 					--sequenceconfig_y_sequence_column_name attributes \
 					--sequenceconfig_x_sequence_column_name $$col_name \
-					--hdfspreprocessorconfig_relevant_log_column $$col_name \
+					--bglpreprocessorconfig_relevant_log_column $$col_name \
 					--sequenceconfig_max_window_size 10 \
 					--sequenceconfig_min_window_size 10 \
 					--experimentconfig_multilabel_classification \
@@ -158,7 +185,7 @@ run_bgl:
 					--modelconfig_rnn_dim 200 \
 					--modelconfig_embedding_dim 300 \
 					--modelconfig_attention_dim 100 \
-					--hdfspreprocessorconfig_log_parser $$algo \
+					--bglpreprocessorconfig_log_parser $$algo \
 					${ARGS} ; \
 			done ; \
 		done ; \
@@ -175,7 +202,7 @@ run_bgl_all:
 				--no-modelconfig_base_hidden_embeddings_trainable \
 				--sequenceconfig_y_sequence_column_name attributes \
 				--sequenceconfig_x_sequence_column_name $$col_name \
-				--hdfspreprocessorconfig_relevant_log_column $$col_name \
+				--bglpreprocessorconfig_relevant_log_column $$col_name \
 				--sequenceconfig_max_window_size 10 \
 				--sequenceconfig_min_window_size 10 \
 				--experimentconfig_multilabel_classification \
@@ -184,7 +211,7 @@ run_bgl_all:
 				--modelconfig_rnn_dim 200 \
 				--modelconfig_embedding_dim 300 \
 				--modelconfig_attention_dim 100 \
-				--hdfspreprocessorconfig_log_parser all \
+				--bglpreprocessorconfig_log_parser all \
 				${ARGS} ; \
 		done ; \
 	done ; \
@@ -203,8 +230,8 @@ run_bgl_attention:
 			--experimentconfig_multilabel_classification \
 			--sequenceconfig_flatten_y \
 			--sequenceconfig_flatten_x \
-			--thunderbirdpreprocessorconfig_log_parser drain \
-			--thunderbirdpreprocessorconfig_relevant_log_column fine_log_cluster_template\
+			--bglpreprocessorconfig_log_parser all \
+			--bglpreprocessorconfig_relevant_log_column fine_log_cluster_template\
 			${ARGS} ; \
 	done ; \
 
@@ -213,7 +240,7 @@ run_bgl_attention:
 
 run_hdfs:
 	for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
-		for col_name in ${ALL_COLUMNS} ; do \
+		for col_name in ${NULOG_SPELL} ; do \
 			${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/python main.py \
 				--experimentconfig_sequence_type hdfs \
 				--experimentconfig_model_type $$knowledge_type \
@@ -251,7 +278,7 @@ run_hdfs_attention:
 			--sequenceconfig_flatten_y \
 			--sequenceconfig_flatten_x \
 			--hdfspreprocessorconfig_log_parser all \
-			--hdfspreprocessorconfig_relevant_log_column fine_log_cluster_template_drain \
+			--hdfspreprocessorconfig_relevant_log_column fine_log_cluster_template_spell \
 			${ARGS} ; \
 	done ; \
 
@@ -310,3 +337,29 @@ run_timestamps_attention:
 		done ; \
 	done ; \
 
+run_anomaly_detection:
+	for algo in ${ALGOS} ; do \
+		for knowledge_type in ${KNOWLEDGE_TYPES} ; do \
+			for col_name in ${COLUMN_NAME} ; do \
+				${CONDA_DIR}/envs/${CONDA_ENV_NAME}/bin/python main.py \
+					--experimentconfig_sequence_type bgl \
+					--experimentconfig_model_type $$knowledge_type \
+					--experimentconfig_batch_size 128 \
+					--no-modelconfig_base_feature_embeddings_trainable \
+					--no-modelconfig_base_hidden_embeddings_trainable \
+					--sequenceconfig_y_sequence_column_name Label \
+					--sequenceconfig_x_sequence_column_name $$col_name \
+					--hdfspreprocessorconfig_relevant_log_column $$col_name \
+					--sequenceconfig_max_window_size 10 \
+					--sequenceconfig_min_window_size 10 \
+					--experimentconfig_multilabel_classification \
+					--sequenceconfig_flatten_y \
+					--modelconfig_rnn_type gru \
+					--modelconfig_rnn_dim 200 \
+					--modelconfig_embedding_dim 300 \
+					--modelconfig_attention_dim 100 \
+					--hdfspreprocessorconfig_log_parser $$algo \
+					${ARGS} ; \
+			done ; \
+		done ; \
+	done ; \

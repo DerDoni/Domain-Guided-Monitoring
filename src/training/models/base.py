@@ -200,6 +200,11 @@ class BaseModel:
             self.prediction_model.summary(print_fn=lambda x: model_summary.append(x))
             mlflow.log_text("\n".join(model_summary), artifact_file="model_summary.txt")
 
+            print("#################################")
+            for element in train_dataset:
+                print(element)
+
+            print("#################################")
             self.history = self.prediction_model.fit(
                 train_dataset,
                 validation_data=test_dataset,
@@ -226,6 +231,7 @@ class BaseModel:
             loss=self.config.loss,
             optimizer=self.config.optimizer,
             metrics=self.metrics,
+            run_eagerly=True,
         )
 
     def _compile_full_prediction(self, train_dataset: tf.data.Dataset):
@@ -272,6 +278,7 @@ class BaseModel:
             loss=full_prediction_binary_accuracy_loss,
             optimizer=self.config.optimizer,
             metrics=self.metrics,
+            run_eagerly=True,
         )
 
     def _compile_multilabel(self, train_dataset: tf.data.Dataset):
@@ -318,6 +325,7 @@ class BaseModel:
             loss=self.config.loss,
             optimizer=self.config.optimizer,
             metrics=self.metrics,
+            run_eagerly=True,
         )
 
     def _compile_multiclass(self, train_dataset: tf.data.Dataset):
@@ -354,5 +362,6 @@ class BaseModel:
             loss=self.config.loss,
             optimizer=self.config.optimizer,
             metrics=self.metrics,
+            run_eagerly=True,
         )
 

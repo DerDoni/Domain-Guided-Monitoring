@@ -17,7 +17,7 @@ from src.features.preprocessing.nulog import Nulog, NulogParameters
 @dataclass_cli.add
 @dataclasses.dataclass
 class BGLPreprocessorConfig:
-    aggregated_log_file: Path = Path("data/logs_BGL.csv")
+    aggregated_log_file: Path = Path("data/logs_BGL_100.csv")
     final_log_file: Path = Path("data/bgl.pkl")
     relevant_aggregated_log_columns: List[str] = dataclasses.field(
         default_factory=lambda: [
@@ -52,7 +52,7 @@ class BGLPreprocessorConfig:
 
 
 class BGLLogsPreprocessor(Preprocessor):
-    sequence_column_name: str = "all_events"
+    sequence_column_name: str = "Label"
 
     def __init__(self, config: BGLPreprocessorConfig):
         self.config = config
@@ -80,7 +80,9 @@ class BGLLogsPreprocessor(Preprocessor):
     def load_data(self, max_data_size=-1) -> pd.DataFrame:
         log_only_data = self._load_log_only_data(max_data_size)
         log_only_data["grouper"] = 1
-        return self._aggregate_per(log_only_data, aggregation_column="grouper")
+        logs =  self._aggregate_per(log_only_data, aggregation_column="grouper")
+        logs.to_pickle(self.config.final_log_file)
+        return logs
 
     def _load_log_only_data(self, max_data_size=-1) -> pd.DataFrame:
         log_df = self._read_log_df(max_data_size=max_data_size)
@@ -103,11 +105,13 @@ class BGLLogsPreprocessor(Preprocessor):
                 lambda x: column + "#" + x.lower() if len(x) > 0 else ""
             )
 
-        merged_df["all_events"] = merged_df[list(self.relevant_columns)].values.tolist()
+        # Make sure to keep out the label from training data
+        merged_df["all_events"] = merged_df[list([x for x in self.relevant_columns if x != "Label"])].values.tolist()
         merged_df["templates"] = merged_df[[x for x in self.relevant_columns if "log_cluster_template" in x]].values.tolist()
         merged_df["attributes"] = merged_df[
             [x for x in self.relevant_columns if not "log_cluster_template" in x]
         ].values.tolist()
+        merged_df["Label"] = merged_df["Label"].apply(lambda x: [x])
         for log_template_column in [
             x for x in self.relevant_columns if "log_cluster_template" in x
         ]:
@@ -120,7 +124,7 @@ class BGLLogsPreprocessor(Preprocessor):
             .agg(
                 {
                     column_name: lambda x: list(x)
-                    for column_name in ["all_events", "attributes", "templates", "label"]
+                    for column_name in ["all_events", "attributes", "templates", "Label"]
                     + [x for x in self.relevant_columns if "log_cluster_template" in x]
                 }
             )
@@ -133,7 +137,7 @@ class BGLLogsPreprocessor(Preprocessor):
             self.config.relevant_log_column
         ].apply(lambda x: len(x))
         return events_per_trace[
-            ["num_logs", "num_events", "all_events", "attributes", "templates", "label"]
+            ["num_logs", "num_events", "all_events", "attributes", "templates", "Label"]
             + [x for x in self.relevant_columns if "log_cluster_template" in x]
         ]
 
