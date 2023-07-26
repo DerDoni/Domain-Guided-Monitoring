@@ -52,3 +52,37 @@ In order to run this code, you need Anaconda + Python >= 3.8. This repository co
   -  `--experimentconfig_model_type`: use this to choose the knowledge model you want to run; valid values are `simple`, `gram`, `text` and `causal`
   -  to see the full list of options run `python main.py -h`
 - **Visualize Results**: Metrics, artefacts and parameters of an experiment run are logged in MLFlow. You can use the mlflow UI to get a good overview over the experiment results. Execute `mlflow ui` to start mlflow UI on port 5000.
+- 
+
+
+## Extensions by me
+
+### Adding more algorithms
+- Implementation of Spell can be found in `src/features/preprocessing/spell.py`
+- Implementation of Nulog can be found in `src/features/preprocessing/nulog.py`
+
+### Extensions to Huawei parsing
+- Changes applied to `src/features/preprocessing/huawei.py` apply also to the other datasets, since the improvements from there were tranfered
+- `HuaweiPreprocessorConfig` was extended to accept parameters for parser selection, medium templates, combinations of parsers and precomputed logs instead of running the parser every time again
+- the functions `_add_nulog_clusters` and `_add_spell_clusters` run the corresponding parsing algorithms and add them to the dataframe that will be used for training
+- the same logic applies to the Thunderbird and HDFS parsers
+- nulog and spell where in their respective files adapted to accept the format of our huawei logs and to accept a DataFrame instead of raw logs without distinct formatting
+- spell was optimizied somewhere in a loop to make access more cache efficient and speed up the runtime, but where is unknown now
+
+### Different Datasets
+
+- Implementation for HDFS  can be found in `src/features/preprocessing/hdfs.py`
+- Implementation for Thunderbird can be found in `src/features/preprocessing/tbird.py`
+
+
+### Notebooks
+- the util functions were adapted to handle the new datasets (especially for mlflow)
+- The Attention vs. no Attention notebooks was mainly used to evaluate results for the thesis
+- logs_to_df notebook was used to convert the original Thunderbird and HDFS logs into a format compatible with our framework
+
+
+### General changes and info
+- main.py, runner.py and config.py in the root src directory all had to be adapted to run the new types of experiments
+- the Makefile can be used to run most of the experiments with a command like: "make run_timestamps_attention"
+- the assumed error was fixed in `src/features/sequences/transformer.py`
+- The datasets are in the data folder in their processed form and original form
