@@ -17,7 +17,7 @@ class ModelConfig:
     feature_embedding_initializer_seed: int = 12345
     hidden_embedding_initializer: str = "random_uniform"
     hidden_embedding_initializer_seed: int = 67890
-    distribute_strategy: str = "/gpu:1"
+    distribute_strategy: str = "mirrored"
     best_model_metric: str = "val_loss"
     best_model_metric_minimize: bool = True
     early_stopping_epochs: int = 5

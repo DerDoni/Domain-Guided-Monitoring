@@ -184,10 +184,6 @@ class ExperimentRunner:
                 .prefetch(tf.data.experimental.AUTOTUNE)
             )
 
-            print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-            for element in train_dataset:
-                print(element)
-            print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
             return (train_dataset, test_dataset)
         else:
             transformer = sequences.load_sequence_transformer()

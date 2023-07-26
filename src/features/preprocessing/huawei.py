@@ -19,7 +19,7 @@ import numpy as np
 @dataclass_cli.add
 @dataclasses.dataclass
 class HuaweiPreprocessorConfig:
-    aggregated_log_file: Path = Path("data/logs_aggregated_concurrent.csv")
+    aggregated_log_file: Path = Path("data/logs_aggregated_concurrent_2000.csv")
     traces_root_directory: Path = Path("data/concurrent_data/traces/")
     final_log_file: Path = Path("data/huawei.pkl")
     relevant_aggregated_log_columns: List[str] = dataclasses.field(
@@ -51,7 +51,7 @@ class HuaweiPreprocessorConfig:
     aggregate_per_time_frequency: str = ""
     log_datetime_column_name: str = "@timestamp"
     log_payload_column_name: str = "Payload"
-    use_log_hierarchy: bool = False
+    use_log_hierarchy: bool = True
     fine_drain_log_depth: int = 10
     fine_drain_log_st: float = 0.75
     medium_drain_log_depth: int = 7
@@ -71,8 +71,8 @@ class HuaweiPreprocessorConfig:
     log_template_file: Path = Path("data/attention_log_templates.csv")
     remove_dates_from_payload: bool = True
     log_parser: str = "drain"
-    use_precomputed_log_templates: bool = True
-    parser_combination: str = "drain+nulog"
+    use_precomputed_log_templates: bool = False
+    parser_combination: str = ""
 
 class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
     sequence_column_name: str = "all_events"
@@ -92,9 +92,9 @@ class ConcurrentAggregatedLogsPreprocessor(Preprocessor):
             self.relevant_columns.add("fine_log_cluster_template_drain")
             self.relevant_columns.add("coarse_log_cluster_template_drain")
             self.relevant_columns.add("medium_log_cluster_template_drain")
-#            self.relevant_columns.add("fine_log_cluster_template_spell")
-#            self.relevant_columns.add("coarse_log_cluster_template_spell")
-#            self.relevant_columns.add("medium_log_cluster_template_spell")
+            self.relevant_columns.add("fine_log_cluster_template_spell")
+            self.relevant_columns.add("coarse_log_cluster_template_spell")
+            self.relevant_columns.add("medium_log_cluster_template_spell")
             self.relevant_columns.add("fine_log_cluster_template_nulog")
             self.relevant_columns.add("coarse_log_cluster_template_nulog")
             self.relevant_columns.add("medium_log_cluster_template_nulog")
@@ -654,13 +654,24 @@ class ConcurrentAggregatedLogsHierarchyPreprocessor(Preprocessor):
     def _load_log_only_hierarchy(self) -> pd.DataFrame:
         preprocessor = ConcurrentAggregatedLogsPreprocessor(self.config)
         huawei_df = preprocessor._load_log_only_data()
-        relevant_log_columns = set(
-            [x for x in preprocessor.relevant_columns if "log_cluster_template" in x]
-            + ["coarse_log_cluster_path"]
-        )
-        attribute_hierarchy = self._load_attribute_hierarchy(
-            huawei_df, set(["coarse_log_cluster_path"])
-        )
+        if self.config.log_parser == "drain" or self.config.log_parser == "all":
+            relevant_log_columns = set(
+                [x for x in preprocessor.relevant_columns if "log_cluster_template" in x]
+                + ["coarse_log_cluster_path"]
+            )
+        else:
+            relevant_log_columns = set(
+                [x for x in preprocessor.relevant_columns if "log_cluster_template" in x]
+            )
+
+        if self.config.log_parser == "drain" or self.config.log_parser == "all":
+            attribute_hierarchy = self._load_attribute_hierarchy(
+                huawei_df, set(["coarse_log_cluster_path"])
+            )
+        else:
+            attribute_hierarchy = self._load_attribute_hierarchy(
+                huawei_df, set(relevant_log_columns)
+            )
         return (
             attribute_hierarchy.append(
                 self._load_log_hierarchy(huawei_df, relevant_log_columns),

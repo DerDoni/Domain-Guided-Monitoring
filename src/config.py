@@ -6,7 +6,7 @@ from pathlib import Path
 @dataclass_cli.add
 @dataclasses.dataclass
 class ExperimentConfig:
-    n_epochs: int = 25
+    n_epochs: int = 10
     sequence_type: str = "huawei_logs"
     model_type: str = "simple"
     # NOISE
@@ -15,7 +15,7 @@ class ExperimentConfig:
     attention_weight_reference_file: Path = Path('data/attention.json')
     attention_noise_to_remove: float = 0.0
     # DATASET GENERATION
-    max_data_size: int = -1
+    max_data_size: int = 2000
     use_dataset_generator: bool = True
     batch_size: int = 128
     multilabel_classification: bool = False
